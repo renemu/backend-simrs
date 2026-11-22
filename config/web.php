@@ -90,8 +90,10 @@ $config = [
                     if (is_array($raw) && isset($raw['errors'])) {
                         $payload['errors'] = $raw['errors'];
                     }
-                    if (YII_DEBUG && is_array($raw) && isset($raw['debug'])) {
+                    if (\app\components\ApiErrorHandler::isDebugEnabled() && is_array($raw) && isset($raw['debug'])) {
                         $payload['debug'] = $raw['debug'];
+                    } elseif (isset($payload['debug'])) {
+                        unset($payload['debug']);
                     }
 
                     $response->data = $payload;

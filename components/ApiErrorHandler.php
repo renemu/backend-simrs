@@ -14,11 +14,25 @@ use yii\web\Response;
  * Custom API ErrorHandler that always outputs structured JSON responses
  * (with CORS headers attached) for 404 Not Found, 401 Unauthorized, 403 Forbidden,
  * 405 Method Not Allowed, 500 Internal Server Error, and uncaught PHP exceptions.
+ * Automatically hides debug traces and sensitive internal messages when APP_ENV=production.
  */
 class ApiErrorHandler extends ErrorHandler
 {
+    public static function isDebugEnabled(): bool
+    {
+        $appEnv = strtolower(trim((string) Env::get('APP_ENV', defined('YII_ENV') ? YII_ENV : 'dev')));
+        if (in_array($appEnv, ['prod', 'production'], true)) {
+            return false;
+        }
+
+        $appDebug = Env::get('APP_DEBUG', defined('YII_DEBUG') ? YII_DEBUG : false);
+        return (bool) $appDebug;
+    }
+
     public static function formatExceptionPayload(\Throwable $exception): array
     {
+        $showDebug = self::isDebugEnabled();
+
         $statusCode = $exception instanceof HttpException ? $exception->statusCode : 500;
         if ($statusCode < 100 || $statusCode >= 600) {
             $statusCode = 500;
@@ -29,7 +43,7 @@ class ApiErrorHandler extends ErrorHandler
             $message = Response::$httpStatuses[$statusCode] ?? 'An internal server error occurred.';
         }
 
-        if (!YII_DEBUG && !$exception instanceof UserException && !$exception instanceof HttpException) {
+        if (!$showDebug && !$exception instanceof UserException && !$exception instanceof HttpException) {
             $message = 'An internal server error occurred.';
         }
 
@@ -40,7 +54,7 @@ class ApiErrorHandler extends ErrorHandler
             'message' => $message,
         ];
 
-        if (YII_DEBUG) {
+        if ($showDebug) {
             $data['debug'] = [
                 'type' => get_class($exception),
                 'file' => $exception->getFile(),

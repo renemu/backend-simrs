@@ -128,6 +128,7 @@ $config = [
             'showScriptName' => false,
             'rules' => [
                 '' => 'site/index',
+                'GET api/health' => 'site/index',
 
                 // CORS preflight for all endpoints
                 'OPTIONS <path:.*>' => 'api/auth/options',

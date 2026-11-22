@@ -6,10 +6,9 @@
     <arg name="basepath" value="."/>
 
     <!-- directories to check -->
-    <file>assets</file>
     <file>commands</file>
+    <file>components</file>
     <file>controllers</file>
-    <file>mail</file>
     <file>models</file>
-    <file>tests</file>
+    <file>seeders</file>
 </ruleset>

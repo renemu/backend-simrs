@@ -63,26 +63,7 @@ class ProcedureController extends BaseApiController
             $query->andWhere(['is_active' => filter_var($isActive, FILTER_VALIDATE_BOOLEAN)]);
         }
 
-        $total = (int) (clone $query)->count();
-        $page = max(1, (int) $request->get('page', 1));
-        $perPage = min(100, max(1, (int) $request->get('per_page', 20)));
-
-        $items = $query
-            ->orderBy(['id' => SORT_ASC])
-            ->offset(($page - 1) * $perPage)
-            ->limit($perPage)
-            ->all();
-
-        return [
-            'success' => true,
-            'data' => $items,
-            'meta' => [
-                'total' => $total,
-                'page' => $page,
-                'per_page' => $perPage,
-                'total_pages' => (int) ceil($total / $perPage),
-            ],
-        ];
+        return $this->paginateQuery($query, ['id' => SORT_ASC]);
     }
 
     /**

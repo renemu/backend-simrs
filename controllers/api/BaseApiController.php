@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\controllers\api;
 
 use Yii;
+use yii\db\ActiveQuery;
 use yii\filters\auth\HttpBearerAuth;
 use yii\filters\ContentNegotiator;
 use yii\filters\Cors;
@@ -13,7 +14,8 @@ use yii\web\Response;
 use app\components\CorsHelper;
 
 /**
- * Base API Controller with CORS, JSON formatting, and strict HTTP Bearer JWT authentication.
+ * Base API Controller with CORS, JSON formatting, strict HTTP Bearer JWT auth,
+ * and shared response/pagination helpers.
  */
 abstract class BaseApiController extends Controller
 {
@@ -87,5 +89,59 @@ abstract class BaseApiController extends Controller
             }
         }
         return is_array($params) ? $params : [];
+    }
+
+    /**
+     * Builds a standardized JSON error response with matching HTTP status code.
+     */
+    protected function errorResponse(int $status, string $message, ?array $errors = null): array
+    {
+        Yii::$app->response->statusCode = $status;
+        $payload = [
+            'success' => false,
+            'status' => $status,
+            'error' => Response::$httpStatuses[$status] ?? 'Error',
+            'message' => $message,
+        ];
+        if ($errors !== null) {
+            $payload['errors'] = $errors;
+        }
+        return $payload;
+    }
+
+    /**
+     * Shortcut for 422 validation error responses.
+     */
+    protected function validationError(array $errors, string $message = 'Validation failed.'): array
+    {
+        return $this->errorResponse(422, $message, $errors);
+    }
+
+    /**
+     * Applies standardized page/per_page pagination to an ActiveQuery and returns a JSON envelope.
+     */
+    protected function paginateQuery(ActiveQuery $query, array $orderBy, int $defaultPerPage = 20): array
+    {
+        $request = Yii::$app->request;
+        $total = (int) (clone $query)->count();
+        $page = max(1, (int) $request->get('page', 1));
+        $perPage = min(100, max(1, (int) $request->get('per_page', $defaultPerPage)));
+
+        $items = $query
+            ->orderBy($orderBy)
+            ->offset(($page - 1) * $perPage)
+            ->limit($perPage)
+            ->all();
+
+        return [
+            'success' => true,
+            'data' => $items,
+            'meta' => [
+                'total' => $total,
+                'page' => $page,
+                'per_page' => $perPage,
+                'total_pages' => (int) ceil($total / $perPage),
+            ],
+        ];
     }
 }

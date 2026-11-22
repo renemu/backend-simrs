@@ -139,7 +139,7 @@ class Visit extends ActiveRecord
         $dayOfWeek = (int) date('w', strtotime($visitDate));
         if ((int) $schedule->day_of_week !== $dayOfWeek) {
             $expectedDay = DoctorSchedule::DAY_LABELS[(int) $schedule->day_of_week] ?? (string) $schedule->day_of_week;
-            $actualDay = DoctorSchedule::DAY_LABELS[$dayOfWeek] ?? (string) $dayOfWeek;
+            $actualDay = DoctorSchedule::DAY_LABELS[$dayOfWeek];
             throw new UnprocessableEntityHttpException(
                 sprintf('Selected schedule is for %s, but visit date %s falls on %s.', $expectedDay, $visitDate, $actualDay)
             );
@@ -283,7 +283,7 @@ class Visit extends ActiveRecord
             'schedule_id',
             'visit_date',
             'queue_number' => fn(self $m) => (int) $m->queue_number,
-            'queue_code' => fn(self $m) => sprintf('%s-%03d', $m->department?->code ?? 'Q', (int) $m->queue_number),
+            'queue_code' => fn(self $m) => sprintf('%s-%03d', $m->department !== null ? $m->department->code : 'Q', (int) $m->queue_number),
             'queue_status',
             'status',
             'registration_fee_snapshot' => fn(self $m) => (float) $m->registration_fee_snapshot,

@@ -6,7 +6,6 @@ namespace app\models;
 
 use Yii;
 use yii\base\Model;
-use yii\base\Security;
 
 /**
  * LoginForm is the model behind the login form and API login endpoint.
@@ -21,11 +20,6 @@ class LoginForm extends Model
     public bool $rememberMe = true;
     private ?User $_user = null;
     private bool $_userLoaded = false;
-
-    public function __construct(?Security $security = null, $config = [])
-    {
-        parent::__construct($config);
-    }
 
     public function rules(): array
     {

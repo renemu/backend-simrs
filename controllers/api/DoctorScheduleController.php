@@ -65,26 +65,7 @@ class DoctorScheduleController extends BaseApiController
             $query->andWhere(['is_active' => filter_var($isActive, FILTER_VALIDATE_BOOLEAN)]);
         }
 
-        $total = (int) (clone $query)->count();
-        $page = max(1, (int) $request->get('page', 1));
-        $perPage = min(100, max(1, (int) $request->get('per_page', 30)));
-
-        $items = $query
-            ->orderBy(['day_of_week' => SORT_ASC, 'start_time' => SORT_ASC, 'id' => SORT_ASC])
-            ->offset(($page - 1) * $perPage)
-            ->limit($perPage)
-            ->all();
-
-        return [
-            'success' => true,
-            'data' => $items,
-            'meta' => [
-                'total' => $total,
-                'page' => $page,
-                'per_page' => $perPage,
-                'total_pages' => (int) ceil($total / $perPage),
-            ],
-        ];
+        return $this->paginateQuery($query, ['day_of_week' => SORT_ASC, 'start_time' => SORT_ASC, 'id' => SORT_ASC], 30);
     }
 
     /**

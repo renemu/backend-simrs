@@ -97,26 +97,7 @@ class VisitController extends BaseApiController
             ]);
         }
 
-        $total = (int) (clone $query)->count();
-        $page = max(1, (int) $request->get('page', 1));
-        $perPage = min(100, max(1, (int) $request->get('per_page', 20)));
-
-        $visits = $query
-            ->orderBy(['visit_date' => SORT_DESC, 'queue_number' => SORT_ASC, 'id' => SORT_DESC])
-            ->offset(($page - 1) * $perPage)
-            ->limit($perPage)
-            ->all();
-
-        return [
-            'success' => true,
-            'data' => $visits,
-            'meta' => [
-                'total' => $total,
-                'page' => $page,
-                'per_page' => $perPage,
-                'total_pages' => (int) ceil($total / $perPage),
-            ],
-        ];
+        return $this->paginateQuery($query, ['visit_date' => SORT_DESC, 'queue_number' => SORT_ASC, 'id' => SORT_DESC]);
     }
 
     /**

@@ -21,13 +21,14 @@ class DatabaseSeeder
         try {
             // Clear Batch 4, Batch 3 & Batch 2 tables first if they exist (FK children first)
             $schema = $db->schema;
-            foreach ([
+            $domainTables = [
                 'payments', 'invoice_items', 'invoices',
                 'lab_results', 'lab_orders',
                 'medicine_stock_movements', 'prescription_items', 'prescriptions',
                 'visit_procedures', 'medical_records', 'visits',
                 'doctor_schedules', 'doctors', 'departments', 'procedures', 'medicines', 'patients',
-            ] as $tbl) {
+            ];
+            foreach ($domainTables as $tbl) {
                 if ($schema->getTableSchema('{{%' . $tbl . '}}', true) !== null) {
                     $db->createCommand()->delete('{{%' . $tbl . '}}')->execute();
                 }

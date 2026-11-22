@@ -61,26 +61,7 @@ class PaymentController extends BaseApiController
             ]);
         }
 
-        $total = (int) (clone $query)->count();
-        $page = max(1, (int) $request->get('page', 1));
-        $perPage = min(100, max(1, (int) $request->get('per_page', 20)));
-
-        $items = $query
-            ->orderBy(['id' => SORT_DESC])
-            ->offset(($page - 1) * $perPage)
-            ->limit($perPage)
-            ->all();
-
-        return [
-            'success' => true,
-            'data' => $items,
-            'meta' => [
-                'total' => $total,
-                'page' => $page,
-                'per_page' => $perPage,
-                'total_pages' => (int) ceil($total / $perPage),
-            ],
-        ];
+        return $this->paginateQuery($query, ['id' => SORT_DESC]);
     }
 
     /**
@@ -125,8 +106,8 @@ class PaymentController extends BaseApiController
                     $payment->payment_method,
                     $payment->payment_reference,
                     (float) $payment->amount,
-                    $invoice?->invoice_number ?? (string) $invoiceId,
-                    $invoice?->payment_status ?? '-'
+                    $invoice->invoice_number,
+                    $invoice->payment_status
                 ),
                 $actor,
                 $payment->id

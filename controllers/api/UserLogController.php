@@ -65,26 +65,7 @@ class UserLogController extends BaseApiController
             $query->andWhere(['user_id' => (int) $userId]);
         }
 
-        $total = (int) (clone $query)->count();
-        $page = max(1, (int) $request->get('page', 1));
-        $perPage = min(100, max(1, (int) $request->get('per_page', 20)));
-
-        $logs = $query
-            ->orderBy(['created_at' => SORT_DESC, 'id' => SORT_DESC])
-            ->offset(($page - 1) * $perPage)
-            ->limit($perPage)
-            ->all();
-
-        return [
-            'success' => true,
-            'data' => $logs,
-            'meta' => [
-                'total' => $total,
-                'page' => $page,
-                'per_page' => $perPage,
-                'total_pages' => (int) ceil($total / $perPage),
-            ],
-        ];
+        return $this->paginateQuery($query, ['created_at' => SORT_DESC, 'id' => SORT_DESC]);
     }
 
     /**

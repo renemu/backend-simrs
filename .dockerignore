@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+vendor
+runtime/*
+!runtime/.gitignore
+web/assets/*
+!web/assets/.gitignore
+tests
+codeception.yml
+phpstan.neon
+phpcs.xml.dist
+README.md
+*.md

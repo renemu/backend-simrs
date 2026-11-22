@@ -100,10 +100,11 @@ class Invoice extends ActiveRecord
 
         $regFee = (float) $visit->registration_fee_snapshot;
         if ($regFee > 0) {
+            $deptName = $visit->department !== null ? $visit->department->name : 'Rawat Jalan';
             $items[] = [
                 'item_type' => 'registration',
                 'reference_id' => $visit->id,
-                'description' => sprintf('Biaya Pendaftaran — %s', $visit->department?->name ?? 'Rawat Jalan'),
+                'description' => sprintf('Biaya Pendaftaran — %s', $deptName),
                 'quantity' => 1,
                 'unit_price' => $regFee,
                 'line_total' => $regFee,
@@ -112,10 +113,11 @@ class Invoice extends ActiveRecord
 
         $consultFee = (float) $visit->consultation_fee_snapshot;
         if ($consultFee > 0) {
+            $doctorName = $visit->doctor !== null ? $visit->doctor->full_name : 'Dokter';
             $items[] = [
                 'item_type' => 'consultation',
                 'reference_id' => $visit->doctor_id,
-                'description' => sprintf('Konsultasi Dokter — %s', $visit->doctor?->full_name ?? 'Dokter'),
+                'description' => sprintf('Konsultasi Dokter — %s', $doctorName),
                 'quantity' => 1,
                 'unit_price' => $consultFee,
                 'line_total' => $consultFee,

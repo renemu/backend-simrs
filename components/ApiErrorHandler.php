@@ -43,7 +43,7 @@ class ApiErrorHandler extends ErrorHandler
             $message = Response::$httpStatuses[$statusCode] ?? 'An internal server error occurred.';
         }
 
-        if (!$showDebug && !$exception instanceof UserException && !$exception instanceof HttpException) {
+        if (!$showDebug && !$exception instanceof UserException) {
             $message = 'An internal server error occurred.';
         }
 

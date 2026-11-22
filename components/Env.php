@@ -9,23 +9,23 @@ namespace app\components;
  */
 class Env
 {
-    private static bool $loaded = false;
+    private static bool $_loaded = false;
 
     public static function load(?string $path = null): void
     {
-        if (self::$loaded) {
+        if (self::$_loaded) {
             return;
         }
 
         $envFile = $path ?? dirname(__DIR__) . '/.env';
         if (!is_file($envFile) || !is_readable($envFile)) {
-            self::$loaded = true;
+            self::$_loaded = true;
             return;
         }
 
         $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         if ($lines === false) {
-            self::$loaded = true;
+            self::$_loaded = true;
             return;
         }
 
@@ -71,7 +71,7 @@ class Env
             }
         }
 
-        self::$loaded = true;
+        self::$_loaded = true;
     }
 
     public static function get(string $key, mixed $default = null): mixed
@@ -79,7 +79,7 @@ class Env
         self::load();
 
         $val = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
-        if ($val === false || $val === null) {
+        if ($val === false) {
             return $default;
         }
 

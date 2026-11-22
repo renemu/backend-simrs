@@ -29,8 +29,6 @@ class DatabaseSeeder
                 'roles' => RoleSeeder::run(),
                 'modules' => ModuleSeeder::run(),
                 'users' => UserSeeder::run(),
-                'user_logs' => UserLogSeeder::run(),
-                'auth_rate_limits' => AuthRateLimitSeeder::run(),
             ];
 
             $transaction->commit();

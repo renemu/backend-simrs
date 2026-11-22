@@ -7,11 +7,10 @@ namespace app\commands;
 use yii\console\Controller;
 use yii\console\ExitCode;
 use yii\helpers\Console;
-use app\seeders\AuthRateLimitSeeder;
 use app\seeders\DatabaseSeeder;
+use app\seeders\MasterDataSeeder;
 use app\seeders\ModuleSeeder;
 use app\seeders\RoleSeeder;
-use app\seeders\UserLogSeeder;
 use app\seeders\UserSeeder;
 
 /**
@@ -22,15 +21,14 @@ use app\seeders\UserSeeder;
  *   ./yii seed/roles       # Seed roles table only
  *   ./yii seed/modules     # Seed modules table only
  *   ./yii seed/users       # Seed users table only
- *   ./yii seed/user-logs   # Seed user_logs table only
- *   ./yii seed/rate-limits # Seed auth_rate_limits table only
+ *   ./yii seed/master-data # Seed Batch 2 master data tables
  */
 class SeedController extends Controller
 {
     public $defaultAction = 'index';
 
     /**
-     * Runs all seeders (roles, modules, users, user_logs, auth_rate_limits).
+     * Runs all seeders (roles, modules, users).
      */
     public function actionIndex(): int
     {
@@ -76,22 +74,15 @@ class SeedController extends Controller
     }
 
     /**
-     * Seeds only the `user_logs` table.
+     * Seeds Batch 2 master data tables (departments, doctors, schedules, procedures, medicines, patients).
      */
-    public function actionUserLogs(): int
+    public function actionMasterData(): int
     {
-        $count = UserLogSeeder::run();
-        $this->stdout("Seeded user_logs ($count rows).\n", Console::FG_GREEN);
-        return ExitCode::OK;
-    }
-
-    /**
-     * Seeds only the `auth_rate_limits` table.
-     */
-    public function actionRateLimits(): int
-    {
-        $count = AuthRateLimitSeeder::run();
-        $this->stdout("Seeded auth_rate_limits ($count rows).\n", Console::FG_GREEN);
+        $this->stdout("Running Batch 2 master data seeders...\n", Console::FG_CYAN);
+        $results = MasterDataSeeder::run();
+        foreach ($results as $table => $count) {
+            $this->stdout(sprintf("  [OK] Seeded %-18s (%d rows)\n", $table, $count), Console::FG_GREEN);
+        }
         return ExitCode::OK;
     }
 }

@@ -51,7 +51,7 @@ $config = [
             'timeZone' => $timezone,
         ],
         'request' => [
-            'cookieValidationKey' => (string) Env::get('COOKIE_VALIDATION_KEY', 'mSiaHuTNwdauegmAUvyFdqp97p7SduO5'),
+            'cookieValidationKey' => (string) Env::get('COOKIE_VALIDATION_KEY', ''),
             'parsers' => [
                 'application/json' => \yii\web\JsonParser::class,
             ],
@@ -167,6 +167,94 @@ $config = [
                 'PUT api/modules/<id:\d+>' => 'api/module/update',
                 'PATCH api/modules/<id:\d+>' => 'api/module/update',
                 'DELETE api/modules/<id:\d+>' => 'api/module/delete',
+
+                // Activity Logs API (read-only audit trail)
+                'GET api/user-logs' => 'api/user-log/index',
+                'GET api/user-logs/<id:\d+>' => 'api/user-log/view',
+
+                // Master Data API (Batch 2 — FR-01)
+                'GET api/patients' => 'api/patient/index',
+                'POST api/patients' => 'api/patient/create',
+                'GET api/patients/<id:\d+>' => 'api/patient/view',
+                'PUT api/patients/<id:\d+>' => 'api/patient/update',
+                'PATCH api/patients/<id:\d+>' => 'api/patient/update',
+                'DELETE api/patients/<id:\d+>' => 'api/patient/delete',
+
+                'GET api/departments' => 'api/department/index',
+                'POST api/departments' => 'api/department/create',
+                'GET api/departments/<id:\d+>' => 'api/department/view',
+                'PUT api/departments/<id:\d+>' => 'api/department/update',
+                'PATCH api/departments/<id:\d+>' => 'api/department/update',
+                'DELETE api/departments/<id:\d+>' => 'api/department/delete',
+
+                'GET api/doctors' => 'api/doctor/index',
+                'POST api/doctors' => 'api/doctor/create',
+                'GET api/doctors/<id:\d+>' => 'api/doctor/view',
+                'PUT api/doctors/<id:\d+>' => 'api/doctor/update',
+                'PATCH api/doctors/<id:\d+>' => 'api/doctor/update',
+                'DELETE api/doctors/<id:\d+>' => 'api/doctor/delete',
+
+                'GET api/doctor-schedules' => 'api/doctor-schedule/index',
+                'POST api/doctor-schedules' => 'api/doctor-schedule/create',
+                'GET api/doctor-schedules/<id:\d+>' => 'api/doctor-schedule/view',
+                'PUT api/doctor-schedules/<id:\d+>' => 'api/doctor-schedule/update',
+                'PATCH api/doctor-schedules/<id:\d+>' => 'api/doctor-schedule/update',
+                'DELETE api/doctor-schedules/<id:\d+>' => 'api/doctor-schedule/delete',
+
+                'GET api/procedures' => 'api/procedure/index',
+                'POST api/procedures' => 'api/procedure/create',
+                'GET api/procedures/<id:\d+>' => 'api/procedure/view',
+                'PUT api/procedures/<id:\d+>' => 'api/procedure/update',
+                'PATCH api/procedures/<id:\d+>' => 'api/procedure/update',
+                'DELETE api/procedures/<id:\d+>' => 'api/procedure/delete',
+
+                'GET api/medicines' => 'api/medicine/index',
+                'POST api/medicines' => 'api/medicine/create',
+                'GET api/medicines/<id:\d+>' => 'api/medicine/view',
+                'PUT api/medicines/<id:\d+>' => 'api/medicine/update',
+                'PATCH api/medicines/<id:\d+>' => 'api/medicine/update',
+                'DELETE api/medicines/<id:\d+>' => 'api/medicine/delete',
+
+                // Outpatient Visits & Queue API (Batch 3 — FR-02)
+                'GET api/visits' => 'api/visit/index',
+                'POST api/visits' => 'api/visit/create',
+                'GET api/visits/<id:\d+>' => 'api/visit/view',
+                'PATCH api/visits/<id:\d+>/queue-status' => 'api/visit/queue-status',
+                'PATCH api/visits/<id:\d+>/cancel' => 'api/visit/cancel',
+
+                // Electronic Medical Record & Visit Procedures API (Batch 3 — FR-03, FR-04)
+                'GET api/visits/<visitId:\d+>/medical-record' => 'api/medical-record/view',
+                'POST api/visits/<visitId:\d+>/medical-record' => 'api/medical-record/upsert',
+                'PUT api/visits/<visitId:\d+>/medical-record' => 'api/medical-record/upsert',
+                'POST api/visits/<visitId:\d+>/procedures' => 'api/medical-record/add-procedure',
+                'PATCH api/visit-procedures/<id:\d+>/cancel' => 'api/medical-record/cancel-procedure',
+
+                // Prescriptions & Pharmacy Fulfillment API (Batch 3 — FR-05)
+                'GET api/prescriptions' => 'api/prescription/index',
+                'GET api/prescriptions/<id:\d+>' => 'api/prescription/view',
+                'POST api/visits/<visitId:\d+>/prescriptions' => 'api/prescription/create',
+                'POST api/prescriptions/<id:\d+>/dispense' => 'api/prescription/dispense',
+                'PATCH api/prescriptions/<id:\d+>/cancel' => 'api/prescription/cancel',
+                'GET api/medicine-stock-movements' => 'api/prescription/stock-movements',
+
+                // Laboratory Orders & Results API (Batch 3 — FR-06)
+                'GET api/lab-orders' => 'api/lab-order/index',
+                'GET api/lab-orders/<id:\d+>' => 'api/lab-order/view',
+                'POST api/visits/<visitId:\d+>/lab-orders' => 'api/lab-order/create',
+                'PATCH api/lab-orders/<id:\d+>/status' => 'api/lab-order/update-status',
+                'POST api/lab-orders/<id:\d+>/result' => 'api/lab-order/save-result',
+                'PUT api/lab-orders/<id:\d+>/result' => 'api/lab-order/save-result',
+
+                // Billing & Idempotent Payments API (Batch 4 — FR-07)
+                'GET api/invoices' => 'api/billing/index',
+                'GET api/invoices/<id:\d+>' => 'api/billing/view',
+                'POST api/visits/<visitId:\d+>/invoices' => 'api/billing/generate',
+                'POST api/invoices/<id:\d+>/revise' => 'api/billing/revise',
+                'GET api/payments' => 'api/payment/index',
+                'POST api/invoices/<invoiceId:\d+>/payments' => 'api/payment/create',
+
+                // Dashboard Aggregations API (Batch 4 — FR-08)
+                'GET api/dashboard/metrics' => 'api/dashboard/metrics',
             ],
         ],
     ],

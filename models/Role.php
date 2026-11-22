@@ -23,6 +23,18 @@ use yii\db\ActiveRecord;
  */
 class Role extends ActiveRecord
 {
+    /**
+     * Core SIMRS roles defined in docs/01-analysis/actors-and-roles.md.
+     */
+    public const CORE_ROLES = [
+        'admin',
+        'registration',
+        'doctor',
+        'pharmacy',
+        'laboratory',
+        'cashier',
+    ];
+
     public static function tableName(): string
     {
         return '{{%roles}}';
@@ -33,11 +45,57 @@ class Role extends ActiveRecord
         return [
             [['name', 'display_name'], 'required'],
             [['name', 'display_name'], 'string', 'max' => 191],
+            [['name'], 'match', 'pattern' => '/^[a-z0-9_-]+$/', 'message' => 'Role name must use lowercase letters, numbers, hyphens, or underscores.'],
             [['name'], 'unique'],
-            [['module_permission'], 'safe'],
+            [['module_permission'], 'validateModulePermission'],
             [['created_by', 'updated_by'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
         ];
+    }
+
+    public function beforeValidate(): bool
+    {
+        if (!parent::beforeValidate()) {
+            return false;
+        }
+
+        if (is_string($this->name)) {
+            $this->name = strtolower(trim($this->name));
+        }
+        if (is_string($this->display_name)) {
+            $this->display_name = trim($this->display_name);
+        }
+
+        return true;
+    }
+
+    public function validateModulePermission(string $attribute): void
+    {
+        $value = $this->$attribute;
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+                $this->addError($attribute, 'module_permission must be a valid JSON array.');
+                return;
+            }
+            $value = $decoded;
+        }
+
+        if (!is_array($value)) {
+            $this->addError($attribute, 'module_permission must be an array.');
+            return;
+        }
+
+        foreach ($value as $index => $item) {
+            if (!is_array($item) || empty($item['module_code']) || !is_string($item['module_code'])) {
+                $this->addError($attribute, sprintf('Permission entry at index %d must contain a valid module_code.', $index));
+                return;
+            }
+        }
     }
 
     public function beforeSave($insert): bool
@@ -52,23 +110,60 @@ class Role extends ActiveRecord
         }
         $this->updated_at = $now;
 
-        if (is_array($this->module_permission)) {
-            $this->module_permission = json_encode(
-                array_values($this->module_permission),
+        $normalized = $this->normalizePermissions($this->module_permission);
+        if ($normalized !== null) {
+            $this->module_permission = (string) json_encode(
+                $normalized,
                 JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
             );
-        } elseif (is_string($this->module_permission) && $this->module_permission !== '') {
-            // Validate JSON string
-            $decoded = json_decode($this->module_permission, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                $this->module_permission = json_encode(
-                    array_values($decoded),
-                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-                );
-            }
         }
 
         return true;
+    }
+
+    /**
+     * Normalizes module_permission into a deduplicated array of CRUD entries.
+     *
+     * @param mixed $raw
+     * @return array<int, array{module_code: string, create: bool, read: bool, update: bool, delete: bool}>|null
+     */
+    private function normalizePermissions(mixed $raw): ?array
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+                return null;
+            }
+            $raw = $decoded;
+        }
+
+        if (!is_array($raw)) {
+            return null;
+        }
+
+        $byCode = [];
+        foreach ($raw as $item) {
+            if (!is_array($item) || empty($item['module_code'])) {
+                continue;
+            }
+            $code = trim((string) $item['module_code']);
+            if ($code === '') {
+                continue;
+            }
+            $byCode[$code] = [
+                'module_code' => $code,
+                'create' => (bool) ($item['create'] ?? false),
+                'read' => (bool) ($item['read'] ?? false),
+                'update' => (bool) ($item['update'] ?? false),
+                'delete' => (bool) ($item['delete'] ?? false),
+            ];
+        }
+
+        return array_values($byCode);
     }
 
     /**
@@ -89,18 +184,13 @@ class Role extends ActiveRecord
     }
 
     /**
-     * Checks if this role grants a specific CRUD action on a module code.
+     * Checks if this role explicitly grants a specific CRUD action on a module code.
+     * Enforces least privilege without implicit wildcard bypass.
      */
     public function checkPermission(string $moduleCode, string $action = 'read'): bool
     {
-        if ($this->name === 'superadmin') {
-            // Check explicit permission first; fallback true for superadmin
-            foreach ($this->getDecodedPermissions() as $perm) {
-                if (($perm['module_code'] ?? '') === $moduleCode) {
-                    return (bool) ($perm[$action] ?? false);
-                }
-            }
-            return true;
+        if (!in_array($action, ['create', 'read', 'update', 'delete'], true)) {
+            return false;
         }
 
         foreach ($this->getDecodedPermissions() as $perm) {
@@ -110,6 +200,11 @@ class Role extends ActiveRecord
         }
 
         return false;
+    }
+
+    public function isCoreRole(): bool
+    {
+        return in_array($this->name, self::CORE_ROLES, true);
     }
 
     public function getUsers(): ActiveQuery
@@ -123,8 +218,8 @@ class Role extends ActiveRecord
             'id',
             'name',
             'display_name',
+            'is_core' => fn(self $model) => $model->isCoreRole(),
             'module_permission' => fn(self $model) => $model->getDecodedPermissions(),
-            'module_permission_raw' => fn(self $model) => $model->module_permission,
             'created_by',
             'updated_by',
             'created_at',

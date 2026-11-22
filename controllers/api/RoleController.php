@@ -65,7 +65,7 @@ class RoleController extends BaseApiController
 
     /**
      * POST /api/roles
-     * Body: { "name": "doctor", "display_name": "Dokter", "module_permission": [...] }
+     * Body: { "name": "nurse", "display_name": "Perawat", "module_permission": [...] }
      */
     public function actionCreate(): array
     {
@@ -84,6 +84,8 @@ class RoleController extends BaseApiController
             Yii::$app->response->statusCode = 422;
             return [
                 'success' => false,
+                'status' => 422,
+                'error' => 'Unprocessable Entity',
                 'message' => 'Validation failed.',
                 'errors' => $role->getErrors(),
             ];
@@ -110,7 +112,17 @@ class RoleController extends BaseApiController
         $actor = Yii::$app->user->identity;
 
         if (array_key_exists('name', $body)) {
-            $role->name = trim((string) $body['name']);
+            $newName = strtolower(trim((string) $body['name']));
+            if ($role->isCoreRole() && $newName !== $role->name) {
+                Yii::$app->response->statusCode = 409;
+                return [
+                    'success' => false,
+                    'status' => 409,
+                    'error' => 'Conflict',
+                    'message' => sprintf('Core role slug "%s" cannot be renamed.', $role->name),
+                ];
+            }
+            $role->name = $newName;
         }
         if (array_key_exists('display_name', $body)) {
             $role->display_name = trim((string) $body['display_name']);
@@ -124,6 +136,8 @@ class RoleController extends BaseApiController
             Yii::$app->response->statusCode = 422;
             return [
                 'success' => false,
+                'status' => 422,
+                'error' => 'Unprocessable Entity',
                 'message' => 'Validation failed.',
                 'errors' => $role->getErrors(),
             ];
@@ -154,6 +168,8 @@ class RoleController extends BaseApiController
             Yii::$app->response->statusCode = 422;
             return [
                 'success' => false,
+                'status' => 422,
+                'error' => 'Unprocessable Entity',
                 'message' => 'Field "module_permission" is required.',
             ];
         }
@@ -165,6 +181,8 @@ class RoleController extends BaseApiController
             Yii::$app->response->statusCode = 422;
             return [
                 'success' => false,
+                'status' => 422,
+                'error' => 'Unprocessable Entity',
                 'message' => 'Failed to update role permissions.',
                 'errors' => $role->getErrors(),
             ];
@@ -187,6 +205,34 @@ class RoleController extends BaseApiController
         $role = $this->findModel($id);
         /** @var User|null $actor */
         $actor = Yii::$app->user->identity;
+
+        if ($role->isCoreRole()) {
+            Yii::$app->response->statusCode = 409;
+            return [
+                'success' => false,
+                'status' => 409,
+                'error' => 'Conflict',
+                'message' => sprintf('Core SIMRS role "%s" cannot be deleted.', $role->name),
+            ];
+        }
+
+        $assignedUsersCount = (int) User::find()
+            ->where(['role_id' => $role->id, 'deleted_at' => null])
+            ->count();
+
+        if ($assignedUsersCount > 0) {
+            Yii::$app->response->statusCode = 409;
+            return [
+                'success' => false,
+                'status' => 409,
+                'error' => 'Conflict',
+                'message' => sprintf(
+                    'Role "%s" is still assigned to %d active user(s). Reassign them before deleting.',
+                    $role->name,
+                    $assignedUsersCount
+                ),
+            ];
+        }
 
         $name = $role->name;
         $role->delete();

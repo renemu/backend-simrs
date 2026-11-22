@@ -16,20 +16,39 @@ class DatabaseSeeder
      */
     public static function run(): array
     {
-        $transaction = Yii::$app->db->beginTransaction();
+        $db = Yii::$app->db;
+        $transaction = $db->beginTransaction();
         try {
-            // Clear child tables first before re-seeding parent tables
-            Yii::$app->db->createCommand()->delete('{{%user_logs}}')->execute();
-            Yii::$app->db->createCommand()->delete('{{%users}}')->execute();
-            Yii::$app->db->createCommand()->delete('{{%modules}}')->execute();
-            Yii::$app->db->createCommand()->delete('{{%roles}}')->execute();
-            Yii::$app->db->createCommand()->delete('{{%auth_rate_limits}}')->execute();
+            // Clear Batch 4, Batch 3 & Batch 2 tables first if they exist (FK children first)
+            $schema = $db->schema;
+            foreach ([
+                'payments', 'invoice_items', 'invoices',
+                'lab_results', 'lab_orders',
+                'medicine_stock_movements', 'prescription_items', 'prescriptions',
+                'visit_procedures', 'medical_records', 'visits',
+                'doctor_schedules', 'doctors', 'departments', 'procedures', 'medicines', 'patients',
+            ] as $tbl) {
+                if ($schema->getTableSchema('{{%' . $tbl . '}}', true) !== null) {
+                    $db->createCommand()->delete('{{%' . $tbl . '}}')->execute();
+                }
+            }
+
+            // Clear Batch 1 child tables before parent tables
+            $db->createCommand()->delete('{{%user_logs}}')->execute();
+            $db->createCommand()->delete('{{%users}}')->execute();
+            $db->createCommand()->delete('{{%modules}}')->execute();
+            $db->createCommand()->delete('{{%roles}}')->execute();
+            $db->createCommand()->delete('{{%auth_rate_limits}}')->execute();
 
             $results = [
                 'roles' => RoleSeeder::run(),
                 'modules' => ModuleSeeder::run(),
                 'users' => UserSeeder::run(),
             ];
+
+            if ($schema->getTableSchema('{{%patients}}', true) !== null) {
+                $results = array_merge($results, MasterDataSeeder::run());
+            }
 
             $transaction->commit();
             return $results;

@@ -13,12 +13,17 @@ class JwtHelper
 {
     private static function getSecret(): string
     {
-        return Yii::$app->params['jwtSecret'] ?? 'simrs-yii2-jwt-secret-key-2026-change-in-production';
+        $secret = trim((string) (Yii::$app->params['jwtSecret'] ?? Env::get('JWT_SECRET', '')));
+        if ($secret === '') {
+            throw new \RuntimeException('JWT_SECRET is not configured in environment.');
+        }
+
+        return $secret;
     }
 
     private static function getTtl(): int
     {
-        return (int) (Yii::$app->params['jwtTtl'] ?? 86400 * 7); // 7 days default
+        return (int) (Yii::$app->params['jwtTtl'] ?? Env::get('JWT_TTL', 86400 * 7));
     }
 
     public static function generateToken(array $claims, ?int $ttl = null): string
@@ -35,8 +40,8 @@ class JwtHelper
         ]);
 
         $segments = [
-            self::base64UrlEncode(json_encode($header, JSON_UNESCAPED_SLASHES)),
-            self::base64UrlEncode(json_encode($payload, JSON_UNESCAPED_SLASHES)),
+            self::base64UrlEncode((string) json_encode($header, JSON_UNESCAPED_SLASHES)),
+            self::base64UrlEncode((string) json_encode($payload, JSON_UNESCAPED_SLASHES)),
         ];
 
         $signingInput = implode('.', $segments);

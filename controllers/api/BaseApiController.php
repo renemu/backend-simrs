@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace app\controllers\api;
 
 use Yii;
-use yii\filters\auth\CompositeAuth;
 use yii\filters\auth\HttpBearerAuth;
-use yii\filters\auth\QueryParamAuth;
 use yii\filters\ContentNegotiator;
 use yii\filters\Cors;
 use yii\web\Controller;
@@ -15,7 +13,7 @@ use yii\web\Response;
 use app\components\CorsHelper;
 
 /**
- * Base API Controller with CORS, JSON formatting, and Bearer/Token authentication.
+ * Base API Controller with CORS, JSON formatting, and strict HTTP Bearer JWT authentication.
  */
 abstract class BaseApiController extends Controller
 {
@@ -61,14 +59,7 @@ abstract class BaseApiController extends Controller
         ];
 
         $behaviors['authenticator'] = [
-            'class' => CompositeAuth::class,
-            'authMethods' => [
-                HttpBearerAuth::class,
-                [
-                    'class' => QueryParamAuth::class,
-                    'tokenParam' => 'access_token',
-                ],
-            ],
+            'class' => HttpBearerAuth::class,
             'except' => ['options'],
             'optional' => $this->authOptionalActions(),
         ];

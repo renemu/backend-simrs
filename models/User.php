@@ -70,6 +70,19 @@ class User extends ActiveRecord implements IdentityInterface
         ];
     }
 
+    public function beforeValidate(): bool
+    {
+        if (!parent::beforeValidate()) {
+            return false;
+        }
+
+        if (is_string($this->email)) {
+            $this->email = strtolower(trim($this->email));
+        }
+
+        return true;
+    }
+
     public function beforeSave($insert): bool
     {
         if (!parent::beforeSave($insert)) {
@@ -103,24 +116,21 @@ class User extends ActiveRecord implements IdentityInterface
             return null;
         }
 
-        // 1. Verify JWT token
         $payload = JwtHelper::verifyToken($token);
-        if (is_array($payload) && isset($payload['sub'])) {
-            $user = static::findIdentity((int) $payload['sub']);
-            if ($user === null) {
-                return null;
-            }
-            if (isset($payload['sv']) && (int) $payload['sv'] !== (int) $user->session_version) {
-                return null;
-            }
-            return $user;
+        if (!is_array($payload) || !isset($payload['sub'])) {
+            return null;
         }
 
-        // 2. Fallback to remember_token lookup
-        return static::find()
-            ->where(['remember_token' => $token, 'is_active' => true])
-            ->andWhere(['deleted_at' => null])
-            ->one();
+        $user = static::findIdentity((int) $payload['sub']);
+        if ($user === null) {
+            return null;
+        }
+
+        if (!isset($payload['sv']) || (int) $payload['sv'] !== (int) $user->session_version) {
+            return null;
+        }
+
+        return $user;
     }
 
     /**

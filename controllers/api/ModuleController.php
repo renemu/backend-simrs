@@ -169,6 +169,17 @@ class ModuleController extends BaseApiController
         /** @var User|null $actor */
         $actor = Yii::$app->user->identity;
 
+        $childCount = (int) Module::find()->where(['parent_id' => $module->id])->count();
+        if ($childCount > 0) {
+            Yii::$app->response->statusCode = 409;
+            return [
+                'success' => false,
+                'status' => 409,
+                'error' => 'Conflict',
+                'message' => sprintf('Module "%s" still has %d child module(s). Move or delete children first.', $module->name, $childCount),
+            ];
+        }
+
         $name = $module->name;
         $module->delete();
 

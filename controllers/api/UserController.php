@@ -11,7 +11,7 @@ use app\models\User;
 use app\models\UserLog;
 
 /**
- * UserController provides RESTful CRUD for `users` table with soft-delete support.
+ * UserController provides RESTful CRUD for `users` table with soft-delete & session invalidation support.
  */
 class UserController extends BaseApiController
 {
@@ -111,34 +111,60 @@ class UserController extends BaseApiController
         /** @var User|null $actor */
         $actor = Yii::$app->user->identity;
 
+        $plainPassword = (string) ($body['password'] ?? '');
+        if ($plainPassword === '' || strlen($plainPassword) < 6) {
+            Yii::$app->response->statusCode = 422;
+            return [
+                'success' => false,
+                'status' => 422,
+                'error' => 'Unprocessable Entity',
+                'message' => 'Validation failed.',
+                'errors' => [
+                    'password' => ['Password is required and must be at least 6 characters.'],
+                ],
+            ];
+        }
+
+        if (!isset($body['role_id']) || $body['role_id'] === '' || $body['role_id'] === null) {
+            Yii::$app->response->statusCode = 422;
+            return [
+                'success' => false,
+                'status' => 422,
+                'error' => 'Unprocessable Entity',
+                'message' => 'Validation failed.',
+                'errors' => [
+                    'role_id' => ['Role is required.'],
+                ],
+            ];
+        }
+
         $user = new User();
         $user->email = trim((string) ($body['email'] ?? ''));
-        $user->name = $body['name'] ?? null;
+        $user->name = isset($body['name']) ? trim((string) $body['name']) : null;
         $user->phone = $body['phone'] ?? null;
         $user->address = $body['address'] ?? null;
-        $user->role_id = isset($body['role_id']) ? (int) $body['role_id'] : null;
+        $user->role_id = (int) $body['role_id'];
         $user->is_active = array_key_exists('is_active', $body) ? (bool) $body['is_active'] : true;
         $user->avatar = $body['avatar'] ?? null;
         $user->theme = (string) ($body['theme'] ?? 'default');
         $user->sidebar_type = (string) ($body['sidebar_type'] ?? 'floating');
         $user->created_by = $actor?->id;
         $user->updated_by = $actor?->id;
-
-        if (!empty($body['password'])) {
-            $user->setPassword((string) $body['password']);
-        }
+        $user->setPassword($plainPassword);
 
         if (!$user->save()) {
             Yii::$app->response->statusCode = 422;
             return [
                 'success' => false,
+                'status' => 422,
+                'error' => 'Unprocessable Entity',
                 'message' => 'Validation failed.',
                 'errors' => $user->getErrors(),
             ];
         }
 
         $user->refresh();
-        UserLog::record('create', 'users-list', sprintf('Created user %s', $user->email), $actor, $user->id);
+        UserLog::record('create', 'users-list', sprintf('Created user %s (role_id=%d)', $user->email, (int) $user->role_id), $actor, $user->id);
 
         Yii::$app->response->statusCode = 201;
         return [
@@ -158,11 +184,14 @@ class UserController extends BaseApiController
         /** @var User|null $actor */
         $actor = Yii::$app->user->identity;
 
+        $oldRoleId = $user->role_id;
+        $oldIsActive = (bool) $user->is_active;
+
         $updatable = ['email', 'name', 'phone', 'address', 'role_id', 'is_active', 'avatar', 'theme', 'sidebar_type'];
         foreach ($updatable as $field) {
             if (array_key_exists($field, $body)) {
                 if ($field === 'role_id') {
-                    $user->role_id = $body[$field] !== null ? (int) $body[$field] : null;
+                    $user->role_id = $body[$field] !== null && $body[$field] !== '' ? (int) $body[$field] : null;
                 } elseif ($field === 'is_active') {
                     $user->is_active = (bool) $body[$field];
                 } else {
@@ -171,9 +200,47 @@ class UserController extends BaseApiController
             }
         }
 
+        if ($actor && $actor->id === $user->id && !$user->is_active) {
+            Yii::$app->response->statusCode = 422;
+            return [
+                'success' => false,
+                'status' => 422,
+                'error' => 'Unprocessable Entity',
+                'message' => 'You cannot deactivate your own active account.',
+            ];
+        }
+
+        $revokeSession = false;
+
         if (!empty($body['password'])) {
-            $user->setPassword((string) $body['password']);
+            $newPassword = (string) $body['password'];
+            if (strlen($newPassword) < 6) {
+                Yii::$app->response->statusCode = 422;
+                return [
+                    'success' => false,
+                    'status' => 422,
+                    'error' => 'Unprocessable Entity',
+                    'message' => 'Validation failed.',
+                    'errors' => [
+                        'password' => ['Password must be at least 6 characters.'],
+                    ],
+                ];
+            }
+            $user->setPassword($newPassword);
+            $revokeSession = true;
+        }
+
+        if ($oldRoleId !== $user->role_id || ($oldIsActive && !$user->is_active)) {
+            $revokeSession = true;
+        }
+
+        if ($revokeSession) {
             $user->session_version = (int) $user->session_version + 1;
+        }
+
+        // Allow reactivating a previously soft-deleted user explicitly
+        if ($user->deleted_at !== null && $user->is_active) {
+            $user->deleted_at = null;
         }
 
         $user->updated_by = $actor?->id;
@@ -182,6 +249,8 @@ class UserController extends BaseApiController
             Yii::$app->response->statusCode = 422;
             return [
                 'success' => false,
+                'status' => 422,
+                'error' => 'Unprocessable Entity',
                 'message' => 'Validation failed.',
                 'errors' => $user->getErrors(),
             ];
@@ -199,7 +268,7 @@ class UserController extends BaseApiController
 
     /**
      * DELETE /api/users/<id>
-     * Performs soft delete by setting deleted_at and is_active = false (or hard delete with ?force=1).
+     * Always performs soft delete (deleted_at + is_active=false + session revocation) to preserve audit trail.
      */
     public function actionDelete(int $id): array
     {
@@ -207,14 +276,23 @@ class UserController extends BaseApiController
         /** @var User|null $actor */
         $actor = Yii::$app->user->identity;
 
-        $force = filter_var(Yii::$app->request->get('force', false), FILTER_VALIDATE_BOOLEAN);
-        if ($force) {
-            $email = $user->email;
-            $user->delete();
-            UserLog::record('hard_delete', 'users-list', sprintf('Hard deleted user %s', $email), $actor, $id);
+        if ($actor && $actor->id === $user->id) {
+            Yii::$app->response->statusCode = 422;
             return [
-                'success' => true,
-                'message' => 'User permanently deleted.',
+                'success' => false,
+                'status' => 422,
+                'error' => 'Unprocessable Entity',
+                'message' => 'You cannot delete your own account.',
+            ];
+        }
+
+        if ($user->deleted_at !== null) {
+            Yii::$app->response->statusCode = 409;
+            return [
+                'success' => false,
+                'status' => 409,
+                'error' => 'Conflict',
+                'message' => 'User is already deactivated/deleted.',
             ];
         }
 
@@ -228,7 +306,7 @@ class UserController extends BaseApiController
 
         return [
             'success' => true,
-            'message' => 'User deleted successfully.',
+            'message' => 'User deactivated (soft deleted) successfully.',
             'data' => $user,
         ];
     }

@@ -170,22 +170,25 @@ backend-yii2/
 
 ## Daftar Migrasi & Akun Seeder Default
 
-Setiap migrasi dijalankan secara berurutan dan langsung mengisi data awal (*seeder*):
+Migrasi dan seeder dipisah (`./yii migrate` vs `./yii seed` / `./yii db/fresh-seed`):
 
-| No | File Migrasi | Tabel | Jumlah Data Seeder |
+| No | File Migrasi | Tabel | Data Seeder |
 | :- | :--- | :--- | :--- |
-| 1 | `m261122_000001_create_roles_table` | `roles` | 4 role (`admin`, `user`, `superadmin`, `test-user`) |
-| 2 | `m261122_000002_create_modules_table` | `modules` | 11 module/menu (Dashboard, Settings, Users, Roles, dll.) |
-| 3 | `m261122_000003_create_users_table` | `users` | 20 user |
-| 4 | `m261122_000004_create_user_logs_table` | `user_logs` | 2 log aktivitas awal |
-| 5 | `m261122_000005_create_auth_rate_limits_table` | `auth_rate_limits` | 1 record rate limit |
+| 1 | `m261122_000001_create_roles_table` | `roles` | 6 role inti SIMRS (`admin`, `registration`, `doctor`, `pharmacy`, `laboratory`, `cashier`) |
+| 2 | `m261122_000002_create_modules_table` | `modules` | 23 modul/menu hierarkis SIMRS (Dashboard, Master Data, Rawat Jalan, Billing & Kasir, Manajemen Akses, Pengaturan) |
+| 3 | `m261122_000003_create_users_table` | `users` | 6 akun demo (1 per role SIMRS) |
+| 4 | `m261122_000004_create_user_logs_table` | `user_logs` | Terisi otomatis oleh aktivitas login/CRUD (read-only via `GET /api/user-logs`) |
+| 5 | `m261122_000005_create_auth_rate_limits_table` | `auth_rate_limits` | Terisi otomatis saat proteksi rate-limit login (maks. 5 percobaan gagal / 15 menit) |
 
-### Akun Default Hasil Seeder:
-| Role | Email | Password |
-| :--- | :--- | :--- |
-| **Administrator** (`admin`) | `admin@example.com` | `admin123` |
-| **Regular User** (`user`) | `user@example.com` | `user123` |
-| **Super Administrator** (`superadmin`) | `superadmin@example.com` | *(sesuai hash dump)* |
+### Akun Demo Default Hasil Seeder (Data Dummy Lokal):
+| Role | Slug | Email | Password |
+| :--- | :--- | :--- | :--- |
+| **Administrator** | `admin` | `admin@example.com` | `admin123` |
+| **Petugas Pendaftaran** | `registration` | `registration@example.com` | `pendaftaran123` |
+| **Dokter** | `doctor` | `doctor@example.com` | `dokter123` |
+| **Petugas Farmasi** | `pharmacy` | `pharmacy@example.com` | `farmasi123` |
+| **Petugas Laboratorium** | `laboratory` | `laboratory@example.com` | `lab123` |
+| **Kasir** | `cashier` | `cashier@example.com` | `kasir123` |
 
 ---
 
@@ -212,11 +215,11 @@ Content-Type: application/json
 ### 2. Auth API (`/api/auth/*`)
 | Method | Endpoint | Auth | Deskripsi |
 | :--- | :--- | :---: | :--- |
-| `POST` | `/api/auth/login` | Publik | Login dengan `email` & `password`, mengembalikan JWT `token`, `user`, `permissions`, dan `menus` |
-| `POST` | `/api/auth/register` | Publik | Registrasi user baru |
-| `GET` | `/api/auth/me` | Bearer | Mengambil data user yang sedang login beserta role, permissions, dan tree menu |
+| `POST` | `/api/auth/login` | Publik (Rate-limited) | Login dengan `email` & `password`, mengembalikan JWT `token`, `user`, `permissions`, dan `menus` |
+| `POST` | `/api/auth/register` | Ditolak (`403`) | Dinonaktifkan untuk keamanan SIMRS internal; akun dibuat oleh Administrator melalui `/api/users` |
+| `GET` | `/api/auth/me` | Bearer | Mengambil data user yang sedang login beserta role, permissions, dan tree menu terfilter |
 | `GET` | `/api/auth/permissions` | Bearer | Mengambil daftar permission atau cek akses spesifik `?module_code=users-list&action=create` |
-| `PUT/PATCH` | `/api/auth/profile` | Bearer | Update profil user, password, `theme`, atau `sidebar_type` |
+| `PUT/PATCH` | `/api/auth/profile` | Bearer | Update profil user, password (menerbitkan token baru & menaikkan `session_version`), `theme`, atau `sidebar_type` |
 | `POST` | `/api/auth/logout` | Bearer | Logout & mencabut token aktif (increment `session_version`) |
 
 ### 3. Users API (`/api/users/*`) — Module Code: `users-list`
@@ -224,19 +227,19 @@ Content-Type: application/json
 | :--- | :--- | :---: | :--- |
 | `GET` | `/api/users` | `read` | List user dengan paginasi & filter (`?search=`, `?role_id=`, `?is_active=`, `?include_deleted=`, `?page=`, `?per_page=`) |
 | `GET` | `/api/users/{id}` | `read` | Detail user berdasarkan ID |
-| `POST` | `/api/users` | `create` | Tambah user baru |
-| `PUT/PATCH` | `/api/users/{id}` | `update` | Update data user |
-| `DELETE` | `/api/users/{id}` | `delete` | Soft delete user (`deleted_at`), atau hard delete dengan `?force=1` |
+| `POST` | `/api/users` | `create` | Tambah user baru (wajib `email`, `password` min. 6 char, `role_id`) |
+| `PUT/PATCH` | `/api/users/{id}` | `update` | Update data user (ubah role/password/nonaktif otomatis menaikkan `session_version`) |
+| `DELETE` | `/api/users/{id}` | `delete` | Soft delete user (`deleted_at` + `is_active = false` + pencabutan sesi; tidak ada hard delete) |
 
 ### 4. Roles & Permissions API (`/api/roles/*`) — Module Code: `users-roles`
 | Method | Endpoint | Permission | Deskripsi |
 | :--- | :--- | :---: | :--- |
-| `GET` | `/api/roles` | `read` | List seluruh role beserta `module_permission` |
+| `GET` | `/api/roles` | `read` | List seluruh role beserta `is_core` dan `module_permission` |
 | `GET` | `/api/roles/{id}` | `read` | Detail role berdasarkan ID |
 | `POST` | `/api/roles` | `create` | Buat role baru |
-| `PUT/PATCH` | `/api/roles/{id}` | `update` | Update `name`, `display_name`, dan `module_permission` |
+| `PUT/PATCH` | `/api/roles/{id}` | `update` | Update `name` (dilindungi untuk core role), `display_name`, dan `module_permission` |
 | `PUT/PATCH` | `/api/roles/{id}/permissions` | `update` | Khusus memperbarui daftar `module_permission` pada role |
-| `DELETE` | `/api/roles/{id}` | `delete` | Hapus role |
+| `DELETE` | `/api/roles/{id}` | `delete` | Hapus custom role (`409 Conflict` untuk core role atau role yang masih dipakai user aktif) |
 
 ### 5. Modules API (`/api/modules/*`) — Module Code: `settings-modules`
 | Method | Endpoint | Permission | Deskripsi |
@@ -245,8 +248,14 @@ Content-Type: application/json
 | `GET` | `/api/modules/tree` | `read` | List seluruh module dalam bentuk hierarki pohon (`parent_id` -> `children`) |
 | `GET` | `/api/modules/{id}` | `read` | Detail module beserta sub-module (`children`) |
 | `POST` | `/api/modules` | `create` | Buat module baru |
-| `PUT/PATCH` | `/api/modules/{id}` | `update` | Update data module |
-| `DELETE` | `/api/modules/{id}` | `delete` | Hapus module |
+| `PUT/PATCH` | `/api/modules/{id}` | `update` | Update data module (validasi anti self-parent) |
+| `DELETE` | `/api/modules/{id}` | `delete` | Hapus module (`409 Conflict` jika masih memiliki child module) |
+
+### 6. Activity Logs API (`/api/user-logs/*`) — Module Code: `users-logs`
+| Method | Endpoint | Permission | Deskripsi |
+| :--- | :--- | :---: | :--- |
+| `GET` | `/api/user-logs` | `read` | List read-only audit log terpaginasi (`?search=`, `?module=`, `?action=`, `?user_id=`, `?page=`, `?per_page=`) |
+| `GET` | `/api/user-logs/{id}` | `read` | Detail log aktivitas berdasarkan ID |
 
 ---
 

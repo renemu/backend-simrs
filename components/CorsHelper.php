@@ -44,7 +44,7 @@ class CorsHelper
     {
         return (string) Env::get(
             'CORS_ALLOWED_HEADERS',
-            'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma'
+            'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Idempotency-Key, X-Correlation-Id'
         );
     }
 

@@ -10,6 +10,6 @@ return [
     'adminEmail' => (string) Env::get('ADMIN_EMAIL', 'admin@example.com'),
     'senderEmail' => (string) Env::get('SENDER_EMAIL', 'noreply@example.com'),
     'senderName' => (string) Env::get('SENDER_NAME', 'SIMRS Mailer'),
-    'jwtSecret' => (string) Env::get('JWT_SECRET', 'simrs-yii2-jwt-secret-key-2026-change-in-production'),
+    'jwtSecret' => (string) Env::get('JWT_SECRET', ''),
     'jwtTtl' => (int) Env::get('JWT_TTL', 604800),
 ];

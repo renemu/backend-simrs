@@ -55,7 +55,18 @@ class Module extends ActiveRecord
                 'targetClass' => self::class,
                 'targetAttribute' => ['parent_id' => 'id'],
             ],
+            [
+                ['parent_id'],
+                'validateNotSelfParent',
+            ],
         ];
+    }
+
+    public function validateNotSelfParent(string $attribute): void
+    {
+        if ($this->id !== null && $this->parent_id !== null && (int) $this->parent_id === (int) $this->id) {
+            $this->addError($attribute, 'A module cannot be its own parent.');
+        }
     }
 
     public function beforeSave($insert): bool

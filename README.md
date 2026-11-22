@@ -90,6 +90,7 @@ backend-yii2/
    APP_VERSION=1.0.0
    APP_ENV=dev
    APP_DEBUG=true
+   APP_TIMEZONE=Asia/Jakarta
    COOKIE_VALIDATION_KEY=mSiaHuTNwdauegmAUvyFdqp97p7SduO5
 
    # Database Configuration (PostgreSQL)

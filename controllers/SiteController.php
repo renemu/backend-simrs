@@ -13,7 +13,7 @@ class SiteController extends Controller
 
     /**
      * GET /
-     * Displays API root info in JSON format using APP_NAME and APP_VERSION from .env.
+     * Displays API root info in JSON format using APP_NAME, APP_VERSION, and APP_TIMEZONE from .env.
      */
     public function actionIndex(): array
     {
@@ -22,6 +22,8 @@ class SiteController extends Controller
             'name' => Yii::$app->name,
             'version' => Yii::$app->version,
             'environment' => YII_ENV,
+            'timezone' => Yii::$app->timeZone,
+            'server_time' => date('Y-m-d H:i:s'),
             'status' => 'online',
         ];
     }

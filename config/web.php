@@ -5,6 +5,9 @@ use app\components\Env;
 
 Env::load();
 
+$timezone = (string) Env::get('APP_TIMEZONE', 'Asia/Jakarta');
+date_default_timezone_set($timezone);
+
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
 
@@ -12,6 +15,7 @@ $config = [
     'id' => (string) Env::get('APP_ID', 'simrs-backend-yii2'),
     'name' => (string) Env::get('APP_NAME', 'SIMRS Backend API (Yii2)'),
     'version' => (string) Env::get('APP_VERSION', '1.0.0'),
+    'timeZone' => $timezone,
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
     'on beforeRequest' => function () {
@@ -42,6 +46,10 @@ $config = [
         '@npm'   => '@vendor/npm-asset',
     ],
     'components' => [
+        'formatter' => [
+            'defaultTimeZone' => $timezone,
+            'timeZone' => $timezone,
+        ],
         'request' => [
             'cookieValidationKey' => (string) Env::get('COOKIE_VALIDATION_KEY', 'mSiaHuTNwdauegmAUvyFdqp97p7SduO5'),
             'parsers' => [

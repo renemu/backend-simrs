@@ -12,8 +12,8 @@ use yii\web\Response;
 
 /**
  * Custom API ErrorHandler that always outputs structured JSON responses
- * for 404 Not Found, 401 Unauthorized, 403 Forbidden, 405 Method Not Allowed,
- * 500 Internal Server Error, and uncaught PHP exceptions.
+ * (with CORS headers attached) for 404 Not Found, 401 Unauthorized, 403 Forbidden,
+ * 405 Method Not Allowed, 500 Internal Server Error, and uncaught PHP exceptions.
  */
 class ApiErrorHandler extends ErrorHandler
 {
@@ -64,6 +64,7 @@ class ApiErrorHandler extends ErrorHandler
             $response->content = null;
             $response->format = Response::FORMAT_JSON;
             $response->setStatusCode($statusCode);
+            CorsHelper::applyHeaders($response);
             $response->data = $data;
             $response->send();
             return;
@@ -71,6 +72,7 @@ class ApiErrorHandler extends ErrorHandler
 
         if (!headers_sent()) {
             http_response_code($statusCode);
+            CorsHelper::applyHeaders(null);
             header('Content-Type: application/json; charset=UTF-8');
         }
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

@@ -1,5 +1,6 @@
 <?php
 
+use app\components\CorsHelper;
 use app\components\Env;
 
 Env::load();
@@ -13,6 +14,19 @@ $config = [
     'version' => (string) Env::get('APP_VERSION', '1.0.0'),
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
+    'on beforeRequest' => function () {
+        $request = \Yii::$app->request;
+        $response = \Yii::$app->response;
+        CorsHelper::applyHeaders($response);
+
+        // Immediately respond to any CORS preflight OPTIONS request
+        if ($request->getMethod() === 'OPTIONS') {
+            $response->statusCode = 204;
+            $response->content = '';
+            $response->send();
+            \Yii::$app->end();
+        }
+    },
     'container' => [
         'singletons' => [
             \yii\mail\MailerInterface::class => [
@@ -41,6 +55,7 @@ $config = [
                 /** @var \yii\web\Response $response */
                 $response = $event->sender;
                 $response->format = \yii\web\Response::FORMAT_JSON;
+                CorsHelper::applyHeaders($response);
 
                 if (!$response->isSuccessful) {
                     $statusCode = $response->statusCode ?: 500;
@@ -104,8 +119,8 @@ $config = [
             'rules' => [
                 '' => 'site/index',
 
-                // CORS preflight for all API endpoints
-                'OPTIONS api/<path:.+>' => 'api/auth/options',
+                // CORS preflight for all endpoints
+                'OPTIONS <path:.*>' => 'api/auth/options',
 
                 // Auth API
                 'POST api/auth/login' => 'api/auth/login',

@@ -12,6 +12,7 @@ use yii\filters\ContentNegotiator;
 use yii\filters\Cors;
 use yii\web\Controller;
 use yii\web\Response;
+use app\components\CorsHelper;
 
 /**
  * Base API Controller with CORS, JSON formatting, and Bearer/Token authentication.
@@ -34,15 +35,21 @@ abstract class BaseApiController extends Controller
     {
         $behaviors = parent::behaviors();
 
+        // Remove authenticator temporarily so corsFilter executes first
+        unset($behaviors['authenticator']);
+
+        $allowedOrigins = CorsHelper::getAllowedOrigins();
+        $allowCredentials = CorsHelper::getAllowCredentials() && !in_array('*', $allowedOrigins, true);
+
         $behaviors['corsFilter'] = [
             'class' => Cors::class,
             'cors' => [
-                'Origin' => ['*'],
+                'Origin' => $allowedOrigins,
                 'Access-Control-Request-Method' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'],
                 'Access-Control-Request-Headers' => ['*'],
-                'Access-Control-Allow-Credentials' => false,
-                'Access-Control-Max-Age' => 86400,
-                'Access-Control-Expose-Headers' => ['X-Pagination-Total-Count', 'X-Pagination-Page-Count', 'X-Pagination-Current-Page', 'X-Pagination-Per-Page'],
+                'Access-Control-Allow-Credentials' => $allowCredentials,
+                'Access-Control-Max-Age' => CorsHelper::getMaxAge(),
+                'Access-Control-Expose-Headers' => array_map('trim', explode(',', CorsHelper::getExposedHeaders())),
             ],
         ];
 
@@ -71,6 +78,7 @@ abstract class BaseApiController extends Controller
 
     public function actionOptions(): array
     {
+        CorsHelper::applyHeaders(Yii::$app->response);
         Yii::$app->response->statusCode = 200;
         return ['status' => 'ok'];
     }

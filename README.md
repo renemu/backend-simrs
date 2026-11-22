@@ -26,7 +26,8 @@ RESTful Backend API untuk **SIMRS** yang dibangun menggunakan **Yii2 Framework**
 ```text
 backend-yii2/
 ├── components/
-│   ├── ApiErrorHandler.php   # Handler error global berbasis JSON API
+│   ├── ApiErrorHandler.php   # Handler error global berbasis JSON API + CORS
+│   ├── CorsHelper.php        # Handler CORS global & preflight OPTIONS (via .env)
 │   ├── Env.php               # Loader & parser file .env
 │   ├── JwtHelper.php         # Generator & validator token JWT (HS256)
 │   └── PermissionFilter.php  # Middleware filter hak akses CRUD per module_code
@@ -105,6 +106,14 @@ backend-yii2/
    # JWT Authentication
    JWT_SECRET=simrs-yii2-jwt-secret-key-2026-change-in-production
    JWT_TTL=604800
+
+   # CORS Configuration (Frontend React: localhost:3000, frontend.example.com, dll)
+   CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,https://frontend.example.com,http://frontend.example.com
+   CORS_ALLOW_CREDENTIALS=true
+   CORS_ALLOWED_METHODS="GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS"
+   CORS_ALLOWED_HEADERS="Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma"
+   CORS_EXPOSED_HEADERS="X-Pagination-Total-Count, X-Pagination-Page-Count, X-Pagination-Current-Page, X-Pagination-Per-Page"
+   CORS_MAX_AGE=86400
    ```
 
 3. **Jalankan Migrasi & Seeder Database**

@@ -5,7 +5,7 @@ declare(strict_types=1);
 use yii\db\Migration;
 
 /**
- * Handles the creation and seeding of table `auth_rate_limits`.
+ * Handles the creation of table `auth_rate_limits` (schema only).
  */
 class m261122_000005_create_auth_rate_limits_table extends Migration
 {
@@ -19,13 +19,6 @@ class m261122_000005_create_auth_rate_limits_table extends Migration
 
         $this->addPrimaryKey('pk-auth_rate_limits', '{{%auth_rate_limits}}', 'key');
         $this->createIndex('idx-auth_rate_limits-expires_at', '{{%auth_rate_limits}}', 'expires_at');
-
-        // Seeder for auth_rate_limits
-        $this->batchInsert('{{%auth_rate_limits}}', [
-            'key', 'attempts', 'expires_at'
-        ], [
-            ['login:127.0.0.1', 1, '2026-11-22 22:00:00.000'],
-        ]);
     }
 
     public function safeDown()

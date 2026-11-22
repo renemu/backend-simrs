@@ -25,6 +25,9 @@ RESTful Backend API untuk **SIMRS** yang dibangun menggunakan **Yii2 Framework**
 
 ```text
 backend-yii2/
+├── commands/
+│   ├── DbController.php      # Command migrasi saja / migrasi ulang + seeder (./yii db/fresh, ./yii db/fresh-seed)
+│   └── SeedController.php    # Command seeder terpisah (./yii seed, ./yii seed/users, dll.)
 ├── components/
 │   ├── ApiErrorHandler.php   # Handler error global berbasis JSON API + CORS
 │   ├── CorsHelper.php        # Handler CORS global & preflight OPTIONS (via .env)
@@ -45,11 +48,18 @@ backend-yii2/
 │       ├── RoleController.php    # CRUD Roles & update permissions
 │       └── ModuleController.php  # CRUD Modules & hierarchical tree
 ├── migrations/
-│   ├── m261122_000001_create_roles_table.php            # Tabel roles + seeder
-│   ├── m261122_000002_create_modules_table.php          # Tabel modules + seeder
-│   ├── m261122_000003_create_users_table.php            # Tabel users + seeder
-│   ├── m261122_000004_create_user_logs_table.php        # Tabel user_logs + seeder
-│   └── m261122_000005_create_auth_rate_limits_table.php # Tabel auth_rate_limits + seeder
+│   ├── m261122_000001_create_roles_table.php            # Skema tabel roles
+│   ├── m261122_000002_create_modules_table.php          # Skema tabel modules
+│   ├── m261122_000003_create_users_table.php            # Skema tabel users
+│   ├── m261122_000004_create_user_logs_table.php        # Skema tabel user_logs
+│   └── m261122_000005_create_auth_rate_limits_table.php # Skema tabel auth_rate_limits
+├── seeders/
+│   ├── DatabaseSeeder.php        # Master seeder (menjalankan semua seeder sesuai urutan FK)
+│   ├── RoleSeeder.php            # Seeder tabel roles
+│   ├── ModuleSeeder.php          # Seeder tabel modules
+│   ├── UserSeeder.php            # Seeder tabel users
+│   ├── UserLogSeeder.php         # Seeder tabel user_logs
+│   └── AuthRateLimitSeeder.php   # Seeder tabel auth_rate_limits
 ├── models/
 │   ├── LoginForm.php         # Model validasi form login
 │   ├── Module.php            # ActiveRecord tabel modules
@@ -118,10 +128,37 @@ backend-yii2/
    ```
 
 3. **Jalankan Migrasi & Seeder Database**
-   Pastikan database PostgreSQL `simrs_db` sudah tersedia, lalu jalankan migrasi:
-   ```bash
-   ./yii migrate
-   ```
+   Pastikan database PostgreSQL `simrs_db` sudah tersedia. Migrasi dan Seeder kini **dipisah** sehingga Anda bisa memilih menjalankan migrasi saja atau beserta seedernya:
+
+   - **Hanya Migrasi (tanpa data seeder):**
+     ```bash
+     ./yii migrate
+     # atau
+     ./yii db/migrate
+     ```
+   - **Migrasi + Seeder:**
+     ```bash
+     ./yii db/migrate --seed=1
+     ```
+   - **Migrasi Ulang dari Awal (Fresh) TANPA Seeder:**
+     ```bash
+     ./yii db/fresh
+     ```
+   - **Migrasi Ulang dari Awal (Fresh) BESERTA Seeder:**
+     ```bash
+     ./yii db/fresh --seed=1
+     # atau shortcut:
+     ./yii db/fresh-seed
+     ```
+   - **Menjalankan Seeder Saja (semua atau per tabel):**
+     ```bash
+     ./yii seed              # Semua seeder
+     ./yii seed/roles        # Hanya seeder roles
+     ./yii seed/modules      # Hanya seeder modules
+     ./yii seed/users        # Hanya seeder users
+     ./yii seed/user-logs    # Hanya seeder user_logs
+     ./yii seed/rate-limits  # Hanya seeder auth_rate_limits
+     ```
 
 4. **Jalankan Development Server**
    ```bash

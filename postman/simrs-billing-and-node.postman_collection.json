@@ -1,0 +1,171 @@
+{
+  "info": {
+    "name": "SIMRS Inova Medika — Batch 4 Billing, Idempotent Payment & Node.js Services",
+    "description": "Postman collection untuk pengujian Billing, Partial Payment, Idempotent Retry (BR-11), Invoice Revision (BR-12), serta Node.js Supporting Services (FR-10).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Billing & Idempotent Payments (Yii2)",
+      "item": [
+        {
+          "name": "POST Generate Invoice for Visit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Invoice generated (201)', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('created_invoice_id', json.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{cashier_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"notes\": \"Tagihan rawat jalan\"\n}" },
+            "url": "{{base_url}}/api/visits/{{created_visit_id}}/invoices"
+          }
+        },
+        {
+          "name": "POST Partial Payment #1 (With Idempotency-Key)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('First payment created (201)', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('Not replay', () => pm.expect(json.idempotent_replay).to.eql(false));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{cashier_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "simrs-test-pay-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_method\": \"cash\",\n  \"payment_channel\": \"Tunai\",\n  \"amount\": 50000,\n  \"notes\": \"Pembayaran parsial tahap 1\"\n}"
+            },
+            "url": "{{base_url}}/api/invoices/{{created_invoice_id}}/payments"
+          }
+        },
+        {
+          "name": "POST Retry Same Payment (Expect 200 idempotent_replay=true)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retry returns 200 without duplicate', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Marked as idempotent_replay', () => pm.expect(json.idempotent_replay).to.eql(true));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{cashier_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "simrs-test-pay-001" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_method\": \"cash\",\n  \"payment_channel\": \"Tunai\",\n  \"amount\": 50000\n}"
+            },
+            "url": "{{base_url}}/api/invoices/{{created_invoice_id}}/payments"
+          }
+        },
+        {
+          "name": "POST Revise Invoice (BR-12)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{cashier_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Penambahan tindakan pasca billing\"\n}" },
+            "url": "{{base_url}}/api/invoices/{{created_invoice_id}}/revise"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Node.js Supporting Services (FR-10)",
+      "item": [
+        {
+          "name": "GET Node Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{node_base_url}}/health"
+          }
+        },
+        {
+          "name": "GET Node Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{node_base_url}}/node-api/dashboard/summary?from=2026-11-01&to=2026-11-30"
+          }
+        },
+        {
+          "name": "POST Node Lab Dispatch (Success)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{laboratory_token}}" }],
+            "url": "{{node_base_url}}/node-api/lab/orders/{{created_lab_id}}/dispatch"
+          }
+        },
+        {
+          "name": "POST Node Lab Dispatch (Simulate Timeout -> Expect 504)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Downstream timeout returns 504 (not fake success)', () => pm.response.to.have.status(504));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{laboratory_token}}" }],
+            "url": "{{node_base_url}}/node-api/lab/orders/{{created_lab_id}}/dispatch?simulate_failure=timeout"
+          }
+        },
+        {
+          "name": "POST Node Lab Result Callback -> Authoritative Yii2 Write",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{laboratory_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lab_order_id\": 1,\n  \"result_summary\": \"Hb 14.2 g/dL, Leukosit 7.600/uL (via Node.js Callback)\",\n  \"reference_notes\": \"Verified by LIS gateway\"\n}"
+            },
+            "url": "{{node_base_url}}/node-api/lab/results/callback"
+          }
+        }
+      ]
+    }
+  ]
+}

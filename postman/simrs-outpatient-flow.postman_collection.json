@@ -1,0 +1,205 @@
+{
+  "info": {
+    "name": "SIMRS Inova Medika — Batch 3 Outpatient Flow (FR-02 to FR-06)",
+    "description": "Postman collection untuk menguji Pendaftaran + Anti-Duplikasi (409), Antrean, Rekam Medis, Tindakan, Resep + Atomic Dispense (409 stok kurang), dan Lab.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Registration & Duplicate Guard (FR-02)",
+      "item": [
+        {
+          "name": "POST Register Visit (Monday 2026-11-23, Schedule #1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Visit created (201)', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('created_visit_id', json.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{registration_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": 1,\n  \"department_id\": 1,\n  \"doctor_id\": 1,\n  \"schedule_id\": 1,\n  \"visit_date\": \"2026-11-23\",\n  \"notes\": \"Demam dan batuk\"\n}"
+            },
+            "url": "{{base_url}}/api/visits"
+          }
+        },
+        {
+          "name": "POST Duplicate Same Patient + Dept + Date (Expect 409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Duplicate registration blocked with 409', () => pm.response.to.have.status(409));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{registration_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": 1,\n  \"department_id\": 1,\n  \"doctor_id\": 1,\n  \"schedule_id\": 1,\n  \"visit_date\": \"2026-11-23\"\n}"
+            },
+            "url": "{{base_url}}/api/visits"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. EMR, Procedures, Prescriptions & Lab (FR-03..FR-06)",
+      "item": [
+        {
+          "name": "PUT Save Medical Record (Doctor)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctor_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"chief_complaint\": \"Demam 3 hari dan batuk berdahak\",\n  \"anamnesis\": \"Demam naik turun disertai pilek ringan\",\n  \"vital_signs\": {\n    \"blood_pressure\": \"120/80\",\n    \"heart_rate\": \"84\",\n    \"temperature\": \"37.8\",\n    \"respiratory_rate\": \"18\"\n  },\n  \"physical_exam\": \"Faring hiperemis ringan\",\n  \"primary_diagnosis\": \"ISPA Akut (J06.9)\",\n  \"secondary_diagnoses\": \"Observasi febris\"\n}"
+            },
+            "url": "{{base_url}}/api/visits/{{created_visit_id}}/medical-record"
+          }
+        },
+        {
+          "name": "POST Add Visit Procedure (Doctor)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctor_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"procedure_id\": 3,\n  \"quantity\": 1\n}"
+            },
+            "url": "{{base_url}}/api/visits/{{created_visit_id}}/procedures"
+          }
+        },
+        {
+          "name": "POST Create Prescription (Doctor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Prescription created (201)', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('created_rx_id', json.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctor_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Diminum setelah makan\",\n  \"items\": [\n    {\n      \"medicine_id\": 1,\n      \"dosage\": \"500mg\",\n      \"frequency\": \"3x1\",\n      \"quantity\": 10\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/visits/{{created_visit_id}}/prescriptions"
+          }
+        },
+        {
+          "name": "POST Dispense Prescription Atomically (Pharmacy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{pharmacy_token}}" }
+            ],
+            "url": "{{base_url}}/api/prescriptions/{{created_rx_id}}/dispense"
+          }
+        },
+        {
+          "name": "POST Dispense Same Prescription Again (Expect 409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Double dispense blocked with 409', () => pm.response.to.have.status(409));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{pharmacy_token}}" }
+            ],
+            "url": "{{base_url}}/api/prescriptions/{{created_rx_id}}/dispense"
+          }
+        },
+        {
+          "name": "POST Create Lab Order (Doctor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Lab order created (201)', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('created_lab_id', json.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctor_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"procedure_id\": 7,\n  \"notes\": \"Cek darah rutin\"\n}"
+            },
+            "url": "{{base_url}}/api/visits/{{created_visit_id}}/lab-orders"
+          }
+        },
+        {
+          "name": "POST Save Lab Result (Laboratory)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{laboratory_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"result_summary\": \"Hb 14.1 g/dL, Leukosit 8.400/uL, Trombosit 245.000/uL (Normal)\",\n  \"reference_notes\": \"Dalam batas normal\"\n}"
+            },
+            "url": "{{base_url}}/api/lab-orders/{{created_lab_id}}/result"
+          }
+        }
+      ]
+    }
+  ]
+}

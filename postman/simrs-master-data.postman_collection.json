@@ -1,0 +1,165 @@
+{
+  "info": {
+    "name": "SIMRS Inova Medika — Batch 2 Master Data (FR-01)",
+    "description": "Postman collection untuk verifikasi CRUD, validasi, overlap schedule, dan RBAC Master Data (Patients, Departments, Doctors, Schedules, Procedures, Medicines).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Patients (master-patients)",
+      "item": [
+        {
+          "name": "GET List Patients (Search & Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/api/patients?page=1&per_page=10"
+          }
+        },
+        {
+          "name": "POST Create Patient (Auto No. RM)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"national_id\": \"3273019999990009\",\n  \"full_name\": \"Pasien Uji Batch 2\",\n  \"birth_date\": \"1995-06-15\",\n  \"gender\": \"female\",\n  \"phone\": \"081399990009\",\n  \"address\": \"Jl. Contoh No. 9\",\n  \"blood_type\": \"A\"\n}"
+            },
+            "url": "{{base_url}}/api/patients"
+          }
+        },
+        {
+          "name": "POST Create Patient as Doctor (Expect 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Doctor cannot create patient (403)', () => pm.response.to.have.status(403));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{doctor_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Unauthorized Patient\",\n  \"birth_date\": \"1990-01-01\",\n  \"gender\": \"male\"\n}"
+            },
+            "url": "{{base_url}}/api/patients"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Departments, Doctors & Schedules",
+      "item": [
+        {
+          "name": "GET List Departments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/api/departments"
+          }
+        },
+        {
+          "name": "GET List Doctors",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/api/doctors"
+          }
+        },
+        {
+          "name": "GET List Doctor Schedules",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/api/doctor-schedules"
+          }
+        },
+        {
+          "name": "POST Overlapping Schedule (Expect 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Overlapping doctor schedule rejected with 422', () => pm.response.to.have.status(422));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctor_id\": 1,\n  \"department_id\": 1,\n  \"day_of_week\": 1,\n  \"start_time\": \"10:00\",\n  \"end_time\": \"13:00\",\n  \"max_quota\": 20\n}"
+            },
+            "url": "{{base_url}}/api/doctor-schedules"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Procedures & Medicines",
+      "item": [
+        {
+          "name": "GET List Procedures",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/api/procedures"
+          }
+        },
+        {
+          "name": "GET List Medicines (Low Stock Filter)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+            "url": "{{base_url}}/api/medicines?low_stock=true"
+          }
+        },
+        {
+          "name": "POST Medicine Negative Stock (Expect 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Negative stock rejected with 422', () => pm.response.to.have.status(422));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"OBT-NEG\",\n  \"name\": \"Invalid Stock Medicine\",\n  \"unit\": \"tablet\",\n  \"stock\": -5,\n  \"unit_price\": 1000\n}"
+            },
+            "url": "{{base_url}}/api/medicines"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -91,6 +91,11 @@ class MasterDataSeeder
             [6, 'TND-EKG', 'Pemeriksaan EKG 12 Lead', 'diagnostic', 110000, 'Elektrokardiografi jantung istirahat', true, 1, 1, $now, $now],
             [7, 'LAB-DL', 'Pemeriksaan Darah Lengkap (CBC)', 'laboratory', 95000, 'Hematologi rutin lengkap (Hb, Leukosit, Trombosit, Hematokrit)', true, 1, 1, $now, $now],
             [8, 'LAB-GDS', 'Pemeriksaan Gula Darah Sewaktu', 'laboratory', 40000, 'Pengukuran kadar glukosa darah sewaktu', true, 1, 1, $now, $now],
+            [9, 'RAD-CT-HEAD', 'CT-Scan Kepala (Non-Kontras)', 'diagnostic', 1250000, 'Pemeriksaan CT-Scan kepala axial/coronal/sagittal via gateway eksternal CT-Scan', true, 1, 1, $now, $now],
+            [10, 'RAD-CT-THORAX', 'CT-Scan Thorax (Dengan Kontras)', 'diagnostic', 1850000, 'Pemeriksaan CT-Scan thorax kontras IV resolusi tinggi via gateway eksternal CT-Scan', true, 1, 1, $now, $now],
+            [11, 'RAD-XRAY-THORAX', 'Foto Rontgen X-Ray Thorax PA', 'diagnostic', 180000, 'Radiografi konvensional dada proyeksi PA via gateway X-Ray/PACS', true, 1, 1, $now, $now],
+            [12, 'RAD-MRI-BRAIN', 'MRI Kepala / Brain (1.5T)', 'diagnostic', 2750000, 'Pencitraan resonansi magnetik otak tanpa radiasi pengion via gateway MRI', true, 1, 1, $now, $now],
+            [13, 'RAD-USG-ABD', 'USG Abdomen Lengkap', 'diagnostic', 350000, 'Ultrasonografi organ abdomen (hepar, kandung empedu, ginjal, limpa) via gateway USG', true, 1, 1, $now, $now],
         ];
         $procedureCount = $db->createCommand()->batchInsert('{{%procedures}}', [
             'id', 'code', 'name', 'category', 'tariff', 'description', 'is_active',

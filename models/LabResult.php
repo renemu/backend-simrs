@@ -8,19 +8,31 @@ use yii\db\ActiveQuery;
 use yii\db\ActiveRecord;
 
 /**
- * LabResult model matching table `lab_results` (FR-06.03, FR-06.04).
+ * LabResult model matching table `lab_results` (FR-06.03, FR-06.04, External Modality Integration).
  *
  * @property int $id
  * @property int $lab_order_id
  * @property string $result_summary
  * @property array|string|null $result_details
  * @property string|null $reference_notes
+ * @property string $result_source
+ * @property string|null $external_study_uid
+ * @property string|null $modality_device
+ * @property string|null $external_completed_at
  * @property int|null $recorded_by
  * @property string $recorded_at
  * @property string|null $updated_at
  */
 class LabResult extends ActiveRecord
 {
+    public const SOURCE_MANUAL = 'manual';
+    public const SOURCE_EXTERNAL_GATEWAY = 'external_gateway';
+
+    public const ALLOWED_SOURCES = [
+        self::SOURCE_MANUAL,
+        self::SOURCE_EXTERNAL_GATEWAY,
+    ];
+
     public static function tableName(): string
     {
         return '{{%lab_results}}';
@@ -33,7 +45,10 @@ class LabResult extends ActiveRecord
             [['lab_order_id', 'recorded_by'], 'integer'],
             [['lab_order_id'], 'unique'],
             [['result_summary', 'reference_notes'], 'string'],
-            [['result_details', 'recorded_at', 'updated_at'], 'safe'],
+            [['result_source'], 'in', 'range' => self::ALLOWED_SOURCES],
+            [['result_source'], 'default', 'value' => self::SOURCE_MANUAL],
+            [['external_study_uid', 'modality_device'], 'string', 'max' => 128],
+            [['result_details', 'external_completed_at', 'recorded_at', 'updated_at'], 'safe'],
         ];
     }
 
@@ -79,6 +94,10 @@ class LabResult extends ActiveRecord
                 return null;
             },
             'reference_notes',
+            'result_source',
+            'external_study_uid',
+            'modality_device',
+            'external_completed_at',
             'recorded_by',
             'recorded_at',
             'updated_at',

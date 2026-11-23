@@ -151,10 +151,14 @@ class Invoice extends ActiveRecord
         foreach ($labOrders as $lo) {
             $tariff = (float) $lo->tariff_snapshot;
             if ($tariff > 0) {
+                $modLabel = LabOrder::MODALITY_LABELS[$lo->modality_type ?? LabOrder::MODALITY_LAB_CLINICAL] ?? 'Laboratorium';
+                $prefix = ($lo->modality_type ?? LabOrder::MODALITY_LAB_CLINICAL) === LabOrder::MODALITY_LAB_CLINICAL
+                    ? 'Laboratorium'
+                    : "Penunjang [{$modLabel}]";
                 $items[] = [
                     'item_type' => 'laboratory',
                     'reference_id' => $lo->id,
-                    'description' => sprintf('Laboratorium: %s (%s)', $lo->test_name, $lo->order_number),
+                    'description' => sprintf('%s: %s (%s)', $prefix, $lo->test_name, $lo->order_number),
                     'quantity' => 1,
                     'unit_price' => $tariff,
                     'line_total' => $tariff,

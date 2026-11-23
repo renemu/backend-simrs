@@ -238,13 +238,15 @@ $config = [
                 'PATCH api/prescriptions/<id:\d+>/cancel' => 'api/prescription/cancel',
                 'GET api/medicine-stock-movements' => 'api/prescription/stock-movements',
 
-                // Laboratory Orders & Results API (Batch 3 — FR-06)
+                // Laboratory Orders & Results API (Batch 3 — FR-06 + External Modality Gateway Sync)
                 'GET api/lab-orders' => 'api/lab-order/index',
                 'GET api/lab-orders/<id:\d+>' => 'api/lab-order/view',
                 'POST api/visits/<visitId:\d+>/lab-orders' => 'api/lab-order/create',
                 'PATCH api/lab-orders/<id:\d+>/status' => 'api/lab-order/update-status',
+                'PATCH api/lab-orders/<id:\d+>/integration' => 'api/lab-order/update-integration',
                 'POST api/lab-orders/<id:\d+>/result' => 'api/lab-order/save-result',
                 'PUT api/lab-orders/<id:\d+>/result' => 'api/lab-order/save-result',
+                'POST api/internal/lab-orders/webhook-result' => 'api/lab-order/webhook-result',
 
                 // Billing & Idempotent Payments API (Batch 4 — FR-07)
                 'GET api/invoices' => 'api/billing/index',

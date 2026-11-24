@@ -45,14 +45,17 @@ class ModuleSeeder
             [15, 'Tagihan (Billing)', 'billings', 'FileSpreadsheetIcon', true, true, true, false, null, null, $now, $now, 14, '/finance/billings', 1, 1],
             [16, 'Pembayaran', 'payments', 'CreditCardIcon', true, true, true, false, null, null, $now, $now, 14, '/finance/payments', 2, 1],
 
+            // Laporan SIMRS (Standar Pelaporan RL & Analitik)
+            [24, 'Laporan SIMRS', 'reports', 'BarChart3Icon', false, true, false, false, null, null, $now, $now, null, '/reports', 5, 1],
+
             // Manajemen Akses Group
-            [17, 'Manajemen Akses', 'users', 'UsersIcon', false, true, false, false, null, null, $now, $now, null, null, 5, 0],
+            [17, 'Manajemen Akses', 'users', 'UsersIcon', false, true, false, false, null, null, $now, $now, null, null, 6, 0],
             [18, 'Pengguna', 'users-list', 'UserIcon', true, true, true, true, null, null, $now, $now, 17, '/users', 1, 1],
             [19, 'Role & Hak Akses', 'users-roles', 'ShieldIcon', true, true, true, true, null, null, $now, $now, 17, '/users/roles', 2, 1],
             [20, 'Log Aktivitas', 'users-logs', 'FileTextIcon', false, true, false, false, null, null, $now, $now, 17, '/users/logs', 3, 1],
 
             // Pengaturan Group
-            [21, 'Pengaturan', 'settings', 'SettingsIcon', false, true, false, false, null, null, $now, $now, null, '/settings', 6, 0],
+            [21, 'Pengaturan', 'settings', 'SettingsIcon', false, true, false, false, null, null, $now, $now, null, '/settings', 7, 0],
             [22, 'Modul & Menu', 'settings-modules', 'ListTreeIcon', true, true, true, true, null, null, $now, $now, 21, '/settings/modules', 1, 1],
             [23, 'Sistem & API', 'settings-apps', 'AppWindowIcon', false, true, true, false, null, null, $now, $now, 21, '/settings/apps', 2, 1],
         ];

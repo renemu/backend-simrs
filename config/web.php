@@ -256,8 +256,10 @@ $config = [
                 'GET api/payments' => 'api/payment/index',
                 'POST api/invoices/<invoiceId:\d+>/payments' => 'api/payment/create',
 
-                // Dashboard Aggregations API (Batch 4 — FR-08)
+                // Dashboard & SIMRS Standard Reports API (Batch 4 — FR-08)
                 'GET api/dashboard/metrics' => 'api/dashboard/metrics',
+                'GET api/reports/summary' => 'api/report/summary',
+                'GET api/reports/details' => 'api/report/details',
             ],
         ],
     ],
